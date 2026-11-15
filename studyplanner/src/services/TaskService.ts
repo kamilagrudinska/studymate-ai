@@ -1,5 +1,5 @@
 import type { Task, TaskPriority, TaskStatus } from '../models/Task';
-import { validateTask } from '../utils/taskLogic';
+import { validateTask, validatePriority, validateStatus } from '../utils/taskLogic';
 
 export interface CreateTaskInput {
     title: string;
@@ -25,6 +25,7 @@ export class TaskService {
     // Sukuria naują užduotį
     createTask(clientId: string, input: CreateTaskInput): Task {
         validateTask(input.title, input.dueDate);
+        validatePriority(input.priority);
 
         const task: Task = {
             id: crypto.randomUUID(),
@@ -52,6 +53,8 @@ export class TaskService {
         };
 
         validateTask(updated.title, updated.dueDate);
+        validatePriority(updated.priority);
+        updated.title = updated.title.trim();
 
         Object.assign(task, updated);
         return { ...task };
@@ -61,9 +64,7 @@ export class TaskService {
     changeStatus(clientId: string, taskId: string, status: TaskStatus): Task {
         const task = this.findClientTask(clientId, taskId);
 
-        if (!(['todo', 'in-progress', 'done'] as string[]).includes(status)) {
-            throw new Error('Neteisinga užduoties būsena');
-        }
+        validateStatus(status);
 
         task.status = status;
         return { ...task };

@@ -2,13 +2,25 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 
 import type { Task, TaskPriority, TaskStatus } from './models/Task';
-import { calculateProgress, isOverdue } from './utils/taskLogic';
+import { calculateProgress, isOverdue, sortTasks } from './utils/taskLogic';
 import { TaskService } from './services/TaskService';
 import { TaskStorage } from './services/TaskStorage';
-import { clients } from './data/sampleData';
+import { clients, sampleTasks } from './data/sampleData';
 import './App.css';
 
-const service = new TaskService(TaskStorage.load());
+let initialLoadError = '';
+
+function createService(): TaskService {
+  try {
+    return new TaskService(TaskStorage.load());
+  } catch {
+    initialLoadError =
+      'Nepavyko įkelti išsaugotų užduočių. Rodomi pavyzdiniai duomenys.';
+    return new TaskService(sampleTasks);
+  }
+}
+
+const service = createService();
 
 const emptyForm = {
   title: '',
@@ -34,9 +46,8 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>(service.getTasks('client-a'));
   const [form, setForm] = useState({ ...emptyForm });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(initialLoadError);
   const [success, setSuccess] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'priority'>('date');
 
   const progress = calculateProgress(tasks);
   const today = new Date().toLocaleDateString('en-CA');
@@ -110,6 +121,10 @@ function App() {
 
     try {
       service.deleteTask(clientId, taskId);
+      if (editingId === taskId) {
+        setEditingId(null);
+        setForm({ ...emptyForm });
+      }
       saveChanges();
       setError('');
       setSuccess('Užduotis pašalinta');
@@ -118,14 +133,7 @@ function App() {
     }
   }
 
-  const sortedTasks = [...tasks].sort((a, b) => {
-    if (sortBy === 'date') {
-      return a.dueDate.localeCompare(b.dueDate);
-    }
-
-    const order = { high: 0, medium: 1, low: 2 };
-    return order[a.priority] - order[b.priority];
-  });
+  const sortedTasks = sortTasks(tasks, today);
 
   return (
     <div className="app">
@@ -251,16 +259,8 @@ function App() {
         <section className="card">
           <div className="list-heading">
             <h2>Mano užduotys ({tasks.length})</h2>
+            <span className="sort-hint">Rikiavimas: vėluojančios, prioritetas, terminas</span>
 
-            <select
-              value={sortBy}
-              onChange={e =>
-                setSortBy(e.target.value as 'date' | 'priority')
-              }
-            >
-              <option value="date">Pagal terminą</option>
-              <option value="priority">Pagal prioritetą</option>
-            </select>
           </div>
 
           {sortedTasks.length === 0 ? (

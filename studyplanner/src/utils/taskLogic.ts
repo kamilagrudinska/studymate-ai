@@ -1,4 +1,4 @@
-import type { Task } from '../models/Task';
+import type { Task, TaskPriority, TaskStatus } from '../models/Task';
 
 export function validateTask(title: string, dueDate: string): void {
     if (!title.trim()) {
@@ -31,4 +31,44 @@ export function calculateProgress(tasks: Task[]): number {
     const completed = tasks.filter(task => task.status === 'done').length;
 
     return Math.round((completed / tasks.length) * 1000) / 10;
+}
+
+const PRIORITIES: TaskPriority[] = ['low', 'medium', 'high'];
+const STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
+
+export function validatePriority(priority: string): void {
+    if (!(PRIORITIES as string[]).includes(priority)) {
+        throw new Error('Neteisingas užduoties prioritetas');
+    }
+}
+
+export function validateStatus(status: string): void {
+    if (!(STATUSES as string[]).includes(status)) {
+        throw new Error('Neteisinga užduoties būsena');
+    }
+}
+
+const PRIORITY_ORDER: Record<TaskPriority, number> = {
+    high: 0,
+    medium: 1,
+    low: 2,
+};
+
+// Rikiavimo taisyklė: aktyvios prieš atliktas; tarp aktyvių – vėluojančios,
+// tada pagal prioritetą, tada pagal artimiausią terminą.
+export function sortTasks(tasks: Task[], today: string): Task[] {
+    return [...tasks].sort((a, b) => {
+        const aDone = a.status === 'done';
+        const bDone = b.status === 'done';
+        if (aDone !== bDone) return aDone ? 1 : -1;
+
+        const aLate = isOverdue(a, today);
+        const bLate = isOverdue(b, today);
+        if (aLate !== bLate) return aLate ? -1 : 1;
+
+        const byPriority = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+        if (byPriority !== 0) return byPriority;
+
+        return a.dueDate.localeCompare(b.dueDate);
+    });
 }

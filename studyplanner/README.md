@@ -19,7 +19,7 @@ Mokymosi planavimo ir užduočių valdymo sistema, skirta mokiniams ir studentam
 - Užduočių būsenos keitimas.
 - Vėluojančių užduočių nustatymas.
 - Mokymosi pažangos skaičiavimas procentais.
-- Užduočių rūšiavimas pagal terminą ir prioritetą.
+- Užduočių rikiavimas pagal taisyklę: aktyvios prieš atliktas; vėluojančios pirmiausia, tada pagal prioritetą ir artimiausią terminą.
 - Duomenų išsaugojimas naršyklėje.
 - Dviejų pavyzdinių klientų duomenų atskyrimas.
 
@@ -52,6 +52,10 @@ Naršyklėje atidaromas terminale nurodytas adresas, įprastai:
 
 http://localhost:5173/
 
+## Konfigūracija
+
+Prototipui papildomos konfigūracijos nereikia: nėra API raktų ar aplinkos kintamųjų, DI funkcija nerealizuota. Duomenys saugomi naršyklės LocalStorage (raktas `studyplanner-tasks`); jei jie sugadinti, programa parodo klaidą ir naudoja pavyzdinius duomenis.
+
 ## Automatiniai testai
 
 Testams naudojama Vitest biblioteka.
@@ -59,10 +63,10 @@ Testams naudojama Vitest biblioteka.
 Testų paleidimo komanda:
 
 ```bash
-npx vitest run
+npm test
 ```
 
-Realizuoti 5 automatiniai testai:
+Testai (`npm test`): `TaskService.test.ts` (5 testai) ir `taskLogic.test.ts` (rikiavimas, pažanga 33,3 %, negaliojanti data, prioriteto validacija). Pagrindiniai scenarijai:
 
 1. Užduoties sukūrimas su teisingais duomenimis.
 2. Mokymosi pažangos apskaičiavimas.
@@ -70,7 +74,7 @@ Realizuoti 5 automatiniai testai:
 4. Vėluojančios užduoties nustatymas.
 5. Klientų duomenų izoliavimo patikrinimas.
 
-Visi 5 testai sėkmingai atlikti.
+Klientų duomenų izoliavimą užtikrina `TaskService` (visos operacijos tikrina `clientId`), o ne sąsaja.
 
 ## Pavyzdiniai duomenys
 
